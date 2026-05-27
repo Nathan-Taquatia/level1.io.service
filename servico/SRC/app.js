@@ -33,6 +33,20 @@ app.get("/campanha", async (req,res) => {
 });
 
 
+app.get("/usuario", async (req,res) => {
+   try {
+
+        const sql = "SELECT * FROM usuario";
+        const [rows] =  await db.query(sql);
+
+        res.status(200).json(rows);
+    
+   } catch (error) {
+        console.log(error);
+        res.status(500).json({ erro : 'Erro ao solicitar o cliente'})
+   }
+});
+
 
 
 export default app;
