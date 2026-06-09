@@ -47,6 +47,22 @@ app.get("/usuario", async (req,res) => {
    }
 });
 
+app.get("/login", async (req,res) => {
+     
+   try {
+     const{emailusuario, mdsenha} = req.query;
+
+        const sql = "SELECT * FROM usuario WHERE emailusuario = ? and mdsenha = ?";
+        const [rows] =  await db.query(sql, [emailusuario, mdsenha]);
+
+        res.status(200).json(rows);
+    
+   } catch (error) {
+        console.log(error);
+        res.status(500).json({ erro : 'Erro ao solicitar o cliente'})
+   }
+});
+
 app.get("/usuario_campanha", async (req,res) => {
    try {
 
