@@ -1,5 +1,7 @@
 import express from "express";
 import mysql from "mysql2/promise";
+import cors from "cors";
+
 
 const app = express();
 
@@ -16,6 +18,7 @@ const db = mysql.createPool(
 )
 
 app.use(express.json());
+app.use(cors());
 app.use(express.urlencoded({ extended: true}));
 
 app.get("/campanha", async (req,res) => {
