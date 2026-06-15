@@ -171,5 +171,51 @@ app.post('/campanha', (req, res) => {
         }
     );
 });
+// Listar fichas do usuário
+app.get('/fichas/:idusuario', (req, res) => {
+    const { idusuario } = req.params;
+    db.query(
+        `SELECT f.*, s.nomesistema, c.campanhanome
+         FROM ficha_personagem f
+         LEFT JOIN sistema s ON f.idsistema = s.idsistema
+         LEFT JOIN campanha c ON f.idcampanha = c.idcampanha
+         WHERE f.idusuario = ?`,
+        [idusuario],
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao buscar fichas', detalhe: err.message });
+            res.json(results);
+        }
+    );
+});
+
+// Criar ficha
+app.post('/ficha', (req, res) => {
+    const { nomepersonagem, classe, nivel, raca, idusuario, idcampanha } = req.body;
+    if (!nomepersonagem || !idusuario)
+        return res.status(400).json({ erro: 'Nome do personagem e usuário são obrigatórios' });
+
+    db.query(
+        `INSERT INTO ficha_personagem (nomepersonagem, classe, nivel, raca, idusuario, idcampanha)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [nomepersonagem, classe ?? null, nivel ?? 1, raca ?? null, idusuario, idcampanha ?? null],
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao criar ficha', detalhe: err.message });
+            res.status(201).json({ mensagem: 'Ficha criada com sucesso', idficha: results.insertId });
+        }
+    );
+});
+
+// Deletar ficha
+app.delete('/ficha/:idficha', (req, res) => {
+    const { idficha } = req.params;
+    db.query(
+        'DELETE FROM ficha_personagem WHERE idficha = ?',
+        [idficha],
+        (err) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao deletar ficha', detalhe: err.message });
+            res.json({ mensagem: 'Ficha deletada com sucesso' });
+        }
+    );
+});
 
 export default app;
