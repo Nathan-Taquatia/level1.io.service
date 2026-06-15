@@ -155,4 +155,21 @@ app.post('/grupo', (req, res) => {
     );
 });
 
+// Criar campanha
+app.post('/campanha', (req, res) => {
+    const { campanhanome, datajogo, idsistema, grupos_idgrupos, descricao, tipo, dm_idusuario } = req.body;
+    if (!campanhanome || !grupos_idgrupos)
+        return res.status(400).json({ erro: 'Nome da campanha e grupo são obrigatórios' });
+
+    db.query(
+        `INSERT INTO campanha (campanhanome, datajogo, idsistema, grupos_idgrupos, descricao, tipo, dm_idusuario)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [campanhanome, datajogo ?? null, idsistema ?? null, grupos_idgrupos, descricao ?? null, tipo ?? 'original', dm_idusuario ?? null],
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao criar campanha', detalhe: err.message });
+            res.status(201).json({ mensagem: 'Campanha criada com sucesso', idcampanha: results.insertId });
+        }
+    );
+});
+
 export default app;
