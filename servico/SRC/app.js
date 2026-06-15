@@ -218,4 +218,52 @@ app.delete('/ficha/:idficha', (req, res) => {
     );
 });
 
+// Listar sessões do usuário
+app.get('/sessoes/:idusuario', (req, res) => {
+    const { idusuario } = req.params;
+    db.query(
+        `SELECT s.*, c.campanhanome, g.gruponomes
+         FROM sessao s
+         LEFT JOIN campanha c ON s.idcampanha = c.idcampanha
+         LEFT JOIN grupos g ON s.idgrupo = g.idgrupos
+         WHERE s.criado_por = ?
+         ORDER BY s.data_jogo ASC`,
+        [idusuario],
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao buscar sessões', detalhe: err.message });
+            res.json(results);
+        }
+    );
+});
+
+// Criar sessão
+app.post('/sessao', (req, res) => {
+    const { titulo, data_jogo, horario, descricao, idcampanha, idgrupo, criado_por } = req.body;
+    if (!titulo || !data_jogo || !horario || !criado_por)
+        return res.status(400).json({ erro: 'Título, data, horário e usuário são obrigatórios' });
+
+    db.query(
+        `INSERT INTO sessao (titulo, data_jogo, horario, descricao, idcampanha, idgrupo, criado_por)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [titulo, data_jogo, horario, descricao ?? null, idcampanha ?? null, idgrupo ?? null, criado_por],
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao criar sessão', detalhe: err.message });
+            res.status(201).json({ mensagem: 'Sessão criada com sucesso', idsessao: results.insertId });
+        }
+    );
+});
+
+// Deletar sessão
+app.delete('/sessao/:idsessao', (req, res) => {
+    const { idsessao } = req.params;
+    db.query(
+        'DELETE FROM sessao WHERE idsessao = ?',
+        [idsessao],
+        (err) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao deletar sessão', detalhe: err.message });
+            res.json({ mensagem: 'Sessão deletada com sucesso' });
+        }
+    );
+});
+
 export default app;
