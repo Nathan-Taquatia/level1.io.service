@@ -22,10 +22,18 @@ const db = mysql.createPool({
 // ─── EXISTENTES ───────────────────────────────────────────────
 
 app.get('/campanha', (req, res) => {
-    db.query('SELECT * FROM campanha', (err, results) => {
-        if (err) return res.status(500).json({ erro: 'Erro ao buscar campanhas', detalhe: err.message });
-        res.json(results);
-    });
+    db.query(
+        `SELECT c.idcampanha, c.campanhanome, c.datajogo, c.descricao, c.tipo,
+                c.dm_idusuario, s.nomesistema, g.gruponomes, u.nomeusuario AS dm_nome
+         FROM campanha c
+         LEFT JOIN sistema s ON c.idsistema = s.idsistema
+         LEFT JOIN grupos g ON c.grupos_idgrupos = g.idgrupos
+         LEFT JOIN usuario u ON c.dm_idusuario = u.id_usuario`,
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao buscar campanhas', detalhe: err.message });
+            res.json(results);
+        }
+    );
 });
 
 app.get('/usuario', (req, res) => {
