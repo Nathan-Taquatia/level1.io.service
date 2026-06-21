@@ -274,4 +274,80 @@ app.delete('/sessao/:idsessao', (req, res) => {
     );
 });
 
+// Criar solicitação para entrar em campanha
+app.post('/solicitacao', (req, res) => {
+    const { idusuario, idcampanha } = req.body;
+    if (!idusuario || !idcampanha)
+        return res.status(400).json({ erro: 'Usuário e campanha são obrigatórios' });
+
+    db.query(
+        'INSERT INTO solicitacao (idusuario, idcampanha) VALUES (?, ?)',
+        [idusuario, idcampanha],
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao criar solicitação', detalhe: err.message });
+            res.status(201).json({ mensagem: 'Solicitação enviada com sucesso', idsolicitacao: results.insertId });
+        }
+    );
+});
+
+// Listar solicitações pendentes para o mestre
+app.get('/solicitacoes/:idusuario', (req, res) => {
+    const { idusuario } = req.params;
+    db.query(
+        `SELECT s.idsolicitacao, s.status, s.criado_em,
+                u.nomeusuario, u.apelido,
+                c.campanhanome, c.idcampanha
+         FROM solicitacao s
+         INNER JOIN usuario u ON s.idusuario = u.id_usuario
+         INNER JOIN campanha c ON s.idcampanha = c.idcampanha
+         WHERE c.dm_idusuario = ? AND s.status = 'pendente'
+         ORDER BY s.criado_em DESC`,
+        [idusuario],
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao buscar solicitações', detalhe: err.message });
+            res.json(results);
+        }
+    );
+});
+
+// Aceitar ou negar solicitação
+app.put('/solicitacao/:idsolicitacao', (req, res) => {
+    const { idsolicitacao } = req.params;
+    const { status } = req.body;
+    if (!['aceito', 'negado'].includes(status))
+        return res.status(400).json({ erro: 'Status deve ser aceito ou negado' });
+
+    db.query(
+        'SELECT * FROM solicitacao WHERE idsolicitacao = ?',
+        [idsolicitacao],
+        (err, rows) => {
+            if (err || rows.length === 0)
+                return res.status(404).json({ erro: 'Solicitação não encontrada' });
+
+            const sol = rows[0];
+
+            db.query(
+                'UPDATE solicitacao SET status = ? WHERE idsolicitacao = ?',
+                [status, idsolicitacao],
+                (err2) => {
+                    if (err2) return res.status(500).json({ erro: 'Erro ao atualizar solicitação', detalhe: err2.message });
+
+                    if (status === 'aceito') {
+                        db.query(
+                            'INSERT INTO usuario_campanha (campanha_idcampanha, usuario_idusuario, role) VALUES (?, ?, ?)',
+                            [sol.idcampanha, sol.idusuario, 'jogador'],
+                            (err3) => {
+                                if (err3) return res.status(500).json({ erro: 'Solicitação aceita mas erro ao vincular usuário', detalhe: err3.message });
+                                res.json({ mensagem: 'Solicitação aceita e usuário adicionado à campanha' });
+                            }
+                        );
+                    } else {
+                        res.json({ mensagem: 'Solicitação negada' });
+                    }
+                }
+            );
+        }
+    );
+});
+
 export default app;
