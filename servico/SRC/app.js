@@ -349,5 +349,24 @@ app.put('/solicitacao/:idsolicitacao', (req, res) => {
         }
     );
 });
+// Campanhas que o usuário participa (como jogador aceito)
+app.get('/minhas-campanhas/:idusuario', (req, res) => {
+    const { idusuario } = req.params;
+    db.query(
+        `SELECT c.idcampanha, c.campanhanome, c.datajogo, c.descricao, c.tipo,
+                s.nomesistema, g.gruponomes, u.nomeusuario AS dm_nome
+         FROM usuario_campanha uc
+         INNER JOIN campanha c ON uc.campanha_idcampanha = c.idcampanha
+         LEFT JOIN sistema s ON c.idsistema = s.idsistema
+         LEFT JOIN grupos g ON c.grupos_idgrupos = g.idgrupos
+         LEFT JOIN usuario u ON c.dm_idusuario = u.id_usuario
+         WHERE uc.usuario_idusuario = ?`,
+        [idusuario],
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao buscar campanhas do usuário', detalhe: err.message });
+            res.json(results);
+        }
+    );
+});
 
 export default app;
