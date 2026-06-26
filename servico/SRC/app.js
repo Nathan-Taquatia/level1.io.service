@@ -369,4 +369,62 @@ app.get('/minhas-campanhas/:idusuario', (req, res) => {
     );
 });
 
+// Upload de PDF da ficha (armazenado como LONGBLOB no banco)
+app.post('/ficha/pdf/:idficha', (req, res) => {
+    const { idficha } = req.params;
+    const chunks = [];
+
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        const contentDisposition = req.headers['content-disposition'] ?? '';
+        const nomeMatch = contentDisposition.match(/filename="(.+)"/);
+        const pdfNome = nomeMatch ? nomeMatch[1] : 'ficha.pdf';
+
+        db.query(
+            `UPDATE ficha_personagem SET pdf = ?, pdf_nome = ?, atualizado_em = NOW() WHERE idficha = ?`,
+            [buffer, pdfNome, idficha],
+            (err) => {
+                if (err) return res.status(500).json({ erro: 'Erro ao salvar PDF', detalhe: err.message });
+                res.json({ mensagem: 'PDF salvo com sucesso' });
+            }
+        );
+    });
+});
+
+// Download de PDF da ficha
+app.get('/ficha/pdf/:idficha', (req, res) => {
+    const { idficha } = req.params;
+    db.query(
+        'SELECT pdf, pdf_nome FROM ficha_personagem WHERE idficha = ?',
+        [idficha],
+        (err, results) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao buscar PDF', detalhe: err.message });
+            if (!results[0]?.pdf) return res.status(404).json({ erro: 'PDF não encontrado' });
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="${results[0].pdf_nome ?? 'ficha.pdf'}"`);
+            res.send(results[0].pdf);
+        }
+    );
+});
+
+// Atualizar ficha de personagem
+app.put('/ficha/:idficha', (req, res) => {
+    const { idficha } = req.params;
+    const { nomepersonagem, classe, nivel, raca, idcampanha, idsistema } = req.body;
+
+    db.query(
+        `UPDATE ficha_personagem 
+         SET nomepersonagem = ?, classe = ?, nivel = ?, raca = ?, idcampanha = ?, idsistema = ?,
+             atualizado_em = NOW()
+         WHERE idficha = ?`,
+        [nomepersonagem, classe ?? null, nivel ?? 1, raca ?? null, idcampanha ?? null, idsistema ?? null, idficha],
+        (err) => {
+            if (err) return res.status(500).json({ erro: 'Erro ao atualizar ficha', detalhe: err.message });
+            res.json({ mensagem: 'Ficha atualizada com sucesso' });
+        }
+    );
+});
+
 export default app;
